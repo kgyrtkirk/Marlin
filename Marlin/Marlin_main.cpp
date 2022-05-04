@@ -2279,7 +2279,7 @@ void clean_up_after_endstop_or_probe_move() {
       #else
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) {
-            SERIAL_ECHOPAIR("last_written_mode - ", int(bltouch_last_written_mode));
+            SERIAL_ECHOLNPAIR("last_written_mode - ", int(bltouch_last_written_mode));
             SERIAL_ECHOLNPGM("config mode - "
               #if ENABLED(BLTOUCH_SET_5V_MODE)
                 "BLTOUCH_SET_5V_MODE"
@@ -5755,7 +5755,12 @@ void home_all_axes() { gcode_G28(true); }
 
           // Unapply the offset because it is going to be immediately applied
           // and cause compensation movement in Z
-          current_position[Z_AXIS] -= bilinear_z_offset(current_position);
+          #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
+            const float fade_scaling_factor = planner.fade_scaling_factor_for_z(current_position[Z_AXIS]);
+          #else
+            constexpr float fade_scaling_factor = 1.0f;
+          #endif
+          current_position[Z_AXIS] -= fade_scaling_factor * bilinear_z_offset(current_position);
 
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) SERIAL_ECHOLNPAIR(" corrected Z:", current_position[Z_AXIS]);
@@ -15453,7 +15458,7 @@ void setup() {
     enable_D();
   #endif
 
-  #if ENABLED(SDSUPPORT) && DISABLED(ULTRA_LCD)
+  #if ENABLED(SDSUPPORT) && !(ENABLED(ULTRA_LCD) && PIN_EXISTS(SD_DETECT))
     card.beginautostart();
   #endif
 }
